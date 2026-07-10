@@ -10,10 +10,12 @@ class Reporte extends Model
 {
     protected $fillable = [
         'usuario_id',
+        'funcionario_id',
         'categoria_id',
         'titulo',
         'descripcion',
         'fotografia',
+        'fotografias',
         'latitud',
         'longitud',
         'direccion',
@@ -29,12 +31,18 @@ class Reporte extends Model
             'longitud' => 'decimal:7',
             'prioridad' => 'integer',
             'fecha_reporte' => 'datetime',
+            'fotografias' => 'array',
         ];
     }
 
     public function usuario(): BelongsTo
     {
         return $this->belongsTo(User::class, 'usuario_id');
+    }
+
+    public function funcionario(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'funcionario_id');
     }
 
     public function categoria(): BelongsTo
@@ -45,6 +53,11 @@ class Reporte extends Model
     public function comentarios(): HasMany
     {
         return $this->hasMany(Comentario::class, 'reporte_id');
+    }
+
+    public function historial(): HasMany
+    {
+        return $this->hasMany(HistorialEstado::class, 'reporte_id')->orderBy('created_at', 'asc');
     }
 
     public function notificaciones(): HasMany

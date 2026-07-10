@@ -1,18 +1,20 @@
 import { useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, Alert, Animated, ScrollView, Dimensions } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { getReportes, getEstadisticas } from '../services/api';
+import { getReportes } from '../services/api';
 import { Ionicons } from '@expo/vector-icons';
 
 const ESTADOS = ['pendiente', 'en_revision', 'en_proceso', 'resuelto', 'rechazado'];
 const ESTADO_COLOR = { pendiente: '#f97316', en_revision: '#3b82f6', en_proceso: '#8b5cf6', resuelto: '#22c55e', rechazado: '#ef4444' };
 const PRIORIDAD_COLOR = { 1: '#22c55e', 2: '#84cc16', 3: '#eab308', 4: '#f97316', 5: '#ef4444' };
+const PRIORIDAD_LABEL = { 1: 'Muy baja', 2: 'Baja', 3: 'Media', 4: 'Alta', 5: 'Crítica' };
 
-export default function HomeScreen({ token, setToken }) {
+const ROL_LABEL = { ciudadano: 'Ciudadano', funcionario: 'Funcionario', admin: 'Administrador' };
+
+export default function HomeScreen({ token, user, setToken }) {
   const navigation = useNavigation();
   const rootNav = navigation.getParent();
   const [reportes, setReportes] = useState([]);
-  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -20,12 +22,8 @@ export default function HomeScreen({ token, setToken }) {
 
   const cargarDatos = async () => {
     try {
-      const [r, s] = await Promise.all([
-        getReportes(),
-        token ? getEstadisticas().catch(() => null) : null,
-      ]);
+      const r = await getReportes();
       setReportes(r.data || []);
-      if (s) setStats(s);
     } catch { Alert.alert('Error', 'No se pudieron cargar los reportes'); }
     finally { setLoading(false); setRefreshing(false); }
   };
@@ -49,8 +47,8 @@ export default function HomeScreen({ token, setToken }) {
       <View style={styles.headerSection}>
         <View style={styles.topRow}>
           <View>
-            <Text style={styles.greeting}>Reporte Ciudadano</Text>
-            <Text style={styles.subtitle}>Reportes comunitarios</Text>
+            <Text style={styles.greeting}>{token && user ? `Hola, ${user.name?.split(' ')[0] || 'ciudadano'}` : 'Reporte Ciudadano'}</Text>
+            <Text style={styles.subtitle}>{user ? ROL_LABEL[user.rol] || 'Ciudadano' : 'Reportes comunitarios'}</Text>
           </View>
           <TouchableOpacity style={styles.authBtn} onPress={() => token ? navigation.navigate('Perfil') : rootNav.navigate('Login', { setToken })}>
             <Ionicons name="person-outline" size={18} color="#fff" />
@@ -86,8 +84,11 @@ export default function HomeScreen({ token, setToken }) {
             <View style={styles.cardBody}>
               <View style={styles.cardTop}>
                 <Text style={styles.cardTitle} numberOfLines={1}>{item.titulo}</Text>
-                <View style={[styles.prioBadge, { backgroundColor: PRIORIDAD_COLOR[item.prioridad] }]}>
-                  <Text style={styles.prioText}>{item.prioridad}</Text>
+                <View style={styles.prioWrap}>
+                  <View style={[styles.prioBadge, { backgroundColor: PRIORIDAD_COLOR[item.prioridad] }]}>
+                    <Text style={styles.prioText}>{item.prioridad}</Text>
+                  </View>
+                  <Text style={[styles.prioLabel, { color: PRIORIDAD_COLOR[item.prioridad] }]}>{PRIORIDAD_LABEL[item.prioridad] || item.prioridad}</Text>
                 </View>
               </View>
               <Text style={styles.cardDesc} numberOfLines={2}>{item.descripcion}</Text>
@@ -133,6 +134,8 @@ const styles = StyleSheet.create({
   cardTitle: { color: '#f1f5f9', fontSize: 15, fontWeight: '700', flex: 1, marginRight: 8 },
   prioBadge: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   prioText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  prioWrap: { alignItems: 'flex-end', gap: 2 },
+  prioLabel: { fontSize: 10, fontWeight: '700' },
   cardDesc: { color: '#94a3b8', fontSize: 13, lineHeight: 18, marginBottom: 10 },
   cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardTags: { flexDirection: 'row', alignItems: 'center', gap: 4 },

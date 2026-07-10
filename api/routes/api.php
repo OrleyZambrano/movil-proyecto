@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\ComentarioController;
 use App\Http\Controllers\Api\EstadisticaController;
 use App\Http\Controllers\Api\NotificacionController;
 use App\Http\Controllers\Api\ReporteController;
+use App\Http\Controllers\Api\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -37,12 +38,22 @@ Route::middleware('auth:sanctum')->group(function () {
     // Estado (funcionario, admin)
     Route::patch('reportes/{reporte}/estado', [ReporteController::class, 'updateEstado']);
 
+    // Asignación a funcionario (admin)
+    Route::post('reportes/{reporte}/asignar', [ReporteController::class, 'asignar']);
+
     // Comentarios (funcionario, admin)
     Route::post('reportes/{reporte}/comentarios', [ComentarioController::class, 'store']);
 
     // Notificaciones
     Route::get('notificaciones', [NotificacionController::class, 'index']);
     Route::patch('notificaciones/{id}/leida', [NotificacionController::class, 'marcarLeida']);
+
+    // Usuarios (admin)
+    Route::get('usuarios', [UsuarioController::class, 'index']);
+    Route::post('usuarios', [UsuarioController::class, 'store']);
+    Route::put('usuarios/{usuario}', [UsuarioController::class, 'update']);
+    Route::delete('usuarios/{usuario}', [UsuarioController::class, 'destroy']);
+    Route::get('funcionarios', [UsuarioController::class, 'funcionarios']);
 
     // Estadísticas (admin)
     Route::get('estadisticas', [EstadisticaController::class, 'index']);

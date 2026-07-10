@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { login } from '../services/api';
-import { guardarToken } from '../services/storage';
+import { guardarSesion } from '../services/storage';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function LoginScreen({ navigation, route }) {
-  const { setToken } = route.params || {};
+export default function LoginScreen({ navigation, route, setToken, setUser }) {
+  setToken = setToken || route.params?.setToken;
+  setUser = setUser || route.params?.setUser;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -16,8 +17,9 @@ export default function LoginScreen({ navigation, route }) {
     setLoading(true);
     try {
       const res = await login(email, password);
-      await guardarToken(res.token);
+      await guardarSesion(res.token, res.user);
       if (setToken) setToken(res.token);
+      if (setUser) setUser(res.user);
       navigation.goBack();
     } catch (e) {
       Alert.alert('Error', e.message || 'Credenciales incorrectas');
@@ -26,8 +28,9 @@ export default function LoginScreen({ navigation, route }) {
 
   return (
     <View style={styles.safe}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-        <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()}><Ionicons name="arrow-back" size={24} color="#f1f5f9" /></TouchableOpacity>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()}><Ionicons name="arrow-back" size={24} color="#f1f5f9" /></TouchableOpacity>
         <View style={styles.topSection}>
           <View style={styles.iconWrap}><Ionicons name="person-circle" size={64} color="#3b82f6" /></View>
           <Text style={styles.title}>Bienvenido</Text>
@@ -40,7 +43,7 @@ export default function LoginScreen({ navigation, route }) {
           </View>
           <View style={styles.inputWrap}>
             <Ionicons name="lock-closed-outline" size={18} color="#64748b" style={styles.inputIcon} />
-            <TextInput style={styles.input} placeholder="Contraseña" placeholderTextColor="#475569" value={password} onChangeText={setPassword} secureTextEntry={!showPass} />
+            <TextInput style={styles.input} placeholder="Contraseña" placeholderTextColor="#475569" value={password} onChangeText={setPassword} secureTextEntry={!showPass} autoCapitalize="none" autoCorrect={false} textContentType="password" />
             <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eye}><Ionicons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={18} color="#64748b" /></TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
@@ -50,6 +53,7 @@ export default function LoginScreen({ navigation, route }) {
             <Text style={styles.link}>¿No tienes cuenta? <Text style={styles.linkBold}>Regístrate</Text></Text>
           </TouchableOpacity>
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
@@ -57,7 +61,8 @@ export default function LoginScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0f172a' },
-  container: { flex: 1, paddingHorizontal: 24 },
+  container: { flex: 1 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 20 },
   back: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   topSection: { alignItems: 'center', marginTop: 32, marginBottom: 40 },
   iconWrap: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },

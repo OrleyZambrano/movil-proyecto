@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { register } from '../services/api';
-import { guardarToken } from '../services/storage';
+import { guardarSesion } from '../services/storage';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function RegisterScreen({ navigation, route }) {
-  const { setToken } = route.params || {};
+export default function RegisterScreen({ navigation, route, setToken, setUser }) {
+  setToken = setToken || route.params?.setToken;
+  setUser = setUser || route.params?.setUser;
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [telefono, setTelefono] = useState('');
@@ -19,9 +20,10 @@ export default function RegisterScreen({ navigation, route }) {
     if (password.length < 6) return Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
     setLoading(true);
     try {
-      const res = await register(name, email, password, passwordConfirmation);
-      await guardarToken(res.token);
+      const res = await register(name, email, password, passwordConfirmation, telefono);
+      await guardarSesion(res.token, res.user);
       if (setToken) setToken(res.token);
+      if (setUser) setUser(res.user);
       navigation.goBack();
     } catch (e) {
       Alert.alert('Error', e.message || 'No se pudo registrar');
@@ -30,8 +32,9 @@ export default function RegisterScreen({ navigation, route }) {
 
   return (
     <View style={styles.safe}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-        <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()}><Ionicons name="arrow-back" size={24} color="#f1f5f9" /></TouchableOpacity>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()}><Ionicons name="arrow-back" size={24} color="#f1f5f9" /></TouchableOpacity>
         <View style={styles.topSection}>
           <View style={styles.iconWrap}><Ionicons name="person-add" size={52} color="#3b82f6" /></View>
           <Text style={styles.title}>Crear cuenta</Text>
@@ -52,16 +55,17 @@ export default function RegisterScreen({ navigation, route }) {
           </View>
           <View style={styles.inputWrap}>
             <Ionicons name="lock-closed-outline" size={18} color="#64748b" style={styles.inputIcon} />
-            <TextInput style={styles.input} placeholder="Contraseña" placeholderTextColor="#475569" value={password} onChangeText={setPassword} secureTextEntry />
+            <TextInput style={styles.input} placeholder="Contraseña" placeholderTextColor="#475569" value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" autoCorrect={false} textContentType="password" />
           </View>
           <View style={styles.inputWrap}>
             <Ionicons name="lock-closed-outline" size={18} color="#64748b" style={styles.inputIcon} />
-            <TextInput style={styles.input} placeholder="Confirmar contraseña" placeholderTextColor="#475569" value={passwordConfirmation} onChangeText={setPasswordConfirmation} secureTextEntry />
+            <TextInput style={styles.input} placeholder="Confirmar contraseña" placeholderTextColor="#475569" value={passwordConfirmation} onChangeText={setPasswordConfirmation} secureTextEntry autoCapitalize="none" autoCorrect={false} textContentType="password" />
           </View>
           <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Crear cuenta</Text>}
           </TouchableOpacity>
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
@@ -69,7 +73,8 @@ export default function RegisterScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0f172a' },
-  container: { flex: 1, paddingHorizontal: 24 },
+  container: { flex: 1 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 20 },
   back: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   topSection: { alignItems: 'center', marginTop: 20, marginBottom: 24 },
   iconWrap: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#1e293b', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },

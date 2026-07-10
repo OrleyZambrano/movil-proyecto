@@ -14,6 +14,11 @@ class ReporteResource extends JsonResource
             'titulo'      => $this->titulo,
             'descripcion' => $this->descripcion,
             'fotografia'  => $this->fotografia ? asset('storage/' . $this->fotografia) : null,
+            'fotografias' => collect($this->fotografias ?? [])
+                ->filter()
+                ->map(fn($f) => asset('storage/' . $f))
+                ->values()
+                ->all(),
             'latitud'     => $this->latitud,
             'longitud'    => $this->longitud,
             'direccion'   => $this->direccion,
@@ -21,6 +26,9 @@ class ReporteResource extends JsonResource
             'estado'      => $this->estado,
             'fecha_reporte' => $this->fecha_reporte,
             'creado'      => $this->created_at->diffForHumans(),
+            'usuario_id'    => $this->usuario_id,
+            'categoria_id'  => $this->categoria_id,
+            'funcionario_id' => $this->funcionario_id,
             'categoria'   => $this->whenLoaded('categoria', fn() => [
                 'id'     => $this->categoria->id,
                 'nombre' => $this->categoria->nombre,
@@ -31,6 +39,11 @@ class ReporteResource extends JsonResource
                 'id'   => $this->usuario->id,
                 'name' => $this->usuario->name,
             ]),
+            'funcionario' => $this->whenLoaded('funcionario', fn() => $this->funcionario ? [
+                'id'   => $this->funcionario->id,
+                'name' => $this->funcionario->name,
+            ] : null),
+            'historial'   => HistorialEstadoResource::collection($this->whenLoaded('historial')),
             'comentarios' => ComentarioResource::collection($this->whenLoaded('comentarios')),
         ];
     }

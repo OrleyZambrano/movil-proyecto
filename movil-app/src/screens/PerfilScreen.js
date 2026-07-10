@@ -3,18 +3,18 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, ScrollView }
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { getUser, getMisReportes, logout } from '../services/api';
-import { borrarToken, guardarToken } from '../services/storage';
+import { borrarSesion } from '../services/storage';
 
-export default function PerfilScreen({ token, setToken }) {
+export default function PerfilScreen({ token, user, setToken, setUser }) {
   const navigation = useNavigation();
   const rootNav = navigation.getParent();
-  const [user, setUser] = useState(null);
+  const [perfil, setPerfil] = useState(null);
   const [misReportes, setMisReportes] = useState([]);
   const [showReportes, setShowReportes] = useState(false);
 
   useEffect(() => {
     if (token) {
-      getUser().then(setUser).catch(() => Alert.alert('Error', 'No se pudo cargar tu perfil'));
+      getUser().then(setPerfil).catch(() => Alert.alert('Error', 'No se pudo cargar tu perfil'));
       getMisReportes().then(r => setMisReportes(r.data || [])).catch(() => {});
     }
   }, [token]);
@@ -25,9 +25,10 @@ export default function PerfilScreen({ token, setToken }) {
 
   const handleLogout = async () => {
     try { await logout(); } catch {}
-    borrarToken();
+    await borrarSesion();
     setToken(null);
-    setUser(null);
+    setPerfil(null);
+    if (setUser) setUser(null);
   };
 
   const ESTADO_COLOR = { pendiente: '#f97316', en_revision: '#3b82f6', en_proceso: '#8b5cf6', resuelto: '#22c55e', rechazado: '#ef4444' };
@@ -57,12 +58,19 @@ export default function PerfilScreen({ token, setToken }) {
         <View style={[styles.avatar, { backgroundColor: '#3b82f6' }]}>
           <Ionicons name="person" size={40} color="#fff" />
         </View>
-        <Text style={styles.userName}>{user?.name || 'Usuario'}</Text>
-        <Text style={styles.userEmail}>{user?.email || ''}</Text>
+        <Text style={styles.userName}>{perfil?.name || user?.name || 'Usuario'}</Text>
+        <Text style={styles.userEmail}>{perfil?.email || user?.email || ''}</Text>
         <View style={styles.rolBadge}>
           <Text style={styles.rolText}>{user?.rol || 'ciudadano'}</Text>
         </View>
       </View>
+
+      {user?.rol === 'admin' && (
+        <TouchableOpacity style={styles.adminBtn} onPress={() => navigation.navigate('Admin')}>
+          <Ionicons name="shield-checkmark" size={20} color="#fff" />
+          <Text style={styles.adminText}> Panel administrativo</Text>
+        </TouchableOpacity>
+      )}
 
       <View style={styles.statsRow}>
         <View style={styles.statBox}>
@@ -138,4 +146,6 @@ const styles = StyleSheet.create({
   reporteItemFecha: { color: '#475569', fontSize: 11 },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, marginTop: 8, gap: 6 },
   logoutText: { color: '#ef4444', fontSize: 15, fontWeight: '600' },
+  adminBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#8b5cf6', marginHorizontal: 20, padding: 14, borderRadius: 14, marginTop: 4, marginBottom: 20 },
+  adminText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

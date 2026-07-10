@@ -15,6 +15,7 @@ class UpdateEstadoRequest extends FormRequest
     {
         return [
             'estado' => ['required', 'in:pendiente,en_revision,en_proceso,resuelto,rechazado'],
+            'comentario' => ['nullable', 'string', 'max:1000'],
         ];
     }
 
