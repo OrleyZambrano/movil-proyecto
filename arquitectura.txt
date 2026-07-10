@@ -1,0 +1,156 @@
+INSTRUCCIONES DE ARQUITECTURA (APLICAR SIEMPRE)
+
+1. CADA ARCHIVO DEBE TENER UNA SOLA RESPONSABILIDAD (SRP).
+   - migrations/ → solo esquema de BD
+   - Models/ → solo configuración Eloquent
+   - Requests/ → solo validación
+   - Resources/ → solo transformación JSON
+   - Controllers/ → solo lógica de control (delgados)
+   - Routes/ → solo definición de rutas
+
+2. NINGÚN ARCHIVO DE CÓDIGO DEBE PASAR DE 100 LÍNEAS.
+   - Si una clase crece más, extraer responsabilidades a nuevos archivos.
+   - Cada nueva clase/archivo se registra aquí abajo.
+
+3. NINGÚN CONTROLADOR DEBE INSTANCIAR OBJETOS MANUALMENTE.
+   - Usar inyección de dependencias o Form Requests.
+
+4. LAS VALIDACIONES VIVEN EN FORM REQUESTS, NO EN CONTROLADORES.
+   - Un Request por cada operación con reglas diferentes.
+
+5. EL CÓDIGO COMPARTIDO (API service, config) VA EN ARCHIVOS SEPARADOS.
+
+6. CADA ARCHIVO CREADO SE AGREGA A ESTA LISTA CON SU RESPONSABILIDAD.
+
+
+ESTRUCTURA DEL PROYECTO
+
+=============================================================
+LARAVEL BACKEND (API REST - Sistema Reporte Ciudadano)
+=============================================================
+
+Archivos creados (✅ verificados, ninguno > 100 líneas):
+
+[backend]
+├── database/migrations/
+│   └── 2026_07_05_000001_create_reportes_table.php ✅
+│       Responsabilidad: Definir esquema de la tabla reportes
+│       (28 líneas)
+│
+├── app/Models/
+│   ├── Reporte.php ✅
+│   │   Responsabilidad: Configuración Eloquent de Reporte
+│   │   (22 líneas)
+│   └── User.php (modificar manualmente)
+│       Responsabilidad: Agregar HasApiTokens de Sanctum
+│       (+3 líneas sobre el original)
+│
+├── app/Http/Requests/
+│   ├── StoreReporteRequest.php ✅
+│   │   Responsabilidad: Validar creación de reporte
+│   │   (23 líneas)
+│   └── UpdateEstadoRequest.php ✅
+│       Responsabilidad: Validar cambio de estado
+│       (16 líneas)
+│
+├── app/Http/Resources/
+│   └── ReporteResource.php ✅
+│       Responsabilidad: Transformar Reporte a JSON
+│       (27 líneas)
+│
+├── app/Http/Controllers/Api/
+│   ├── AuthController.php ✅
+│   │   Responsabilidad: Manejar register, login, logout, user
+│   │   (47 líneas)
+│   └── ReporteController.php ✅
+│       Responsabilidad: CRUD de reportes (index, store, show, updateEstado)
+│       (43 líneas)
+│
+└── routes/
+    └── api.php ✅
+        Responsabilidad: Definir rutas de la API
+        (12 líneas)
+
+
+=============================================================
+EXPO APP (React Native - Consumo de API)
+=============================================================
+
+Archivos creados (✅ verificados, ninguno > 100 líneas):
+
+[app]
+├── src/services/
+│   ├── api.js ✅
+│   │   Responsabilidad: Fetch wrapper con token (login, getReportes, createReporte)
+│   │   (33 líneas)
+│   └── storage.js ✅
+│       Responsabilidad: Guardar/leer/borrar token de AsyncStorage
+│       (5 líneas)
+│
+├── src/screens/
+│   ├── LoginScreen.js ✅
+│   │   Responsabilidad: Formulario de login (email + password)
+│   │   (55 líneas)
+│   ├── ReportesScreen.js ✅
+│   │   Responsabilidad: Lista de reportes + botón Actualizar lista
+│   │   (74 líneas)
+│   └── NuevoReporteScreen.js ✅
+│       Responsabilidad: Formulario completo de nuevo reporte
+│       (97 líneas)
+│
+├── src/navigation/
+│   └── AppNavigator.js ✅
+│       Responsabilidad: Definir navegación (AuthStack vs AppStack)
+│       (27 líneas)
+│
+└── App.js ✅
+    Responsabilidad: Entry point, renderiza AppNavigator
+    (9 líneas)
+
+=============================================================
+PROYECTOS FUNCIONALES (RUTAS REALES)
+=============================================================
+
+Backend Laravel (completo y probado ✅):
+  C:\Users\anton\Pictures\movil\reporte-ciudadano-backend
+  Para iniciar: php artisan serve --host=0.0.0.0 --port=8000
+
+App Expo (completa con dependencias ✅):
+  C:\Users\anton\Pictures\movil\reporte-ciudadano-app
+  Para iniciar: npm run android (o npm run web)
+
+=============================================================
+RESUMEN DE ARCHIVOS CREADOS
+=============================================================
+Backend:   8 archivos  |  218 líneas totales  |  Laravel 12 + Sanctum + SQLite
+Expo App:  7 archivos  |  300 líneas totales  |  Expo SDK 57
+Total:    15 archivos  |  518 líneas
+
+
+=============================================================
+VALIDACIONES CLAVE (StoreReporteRequest)
+=============================================================
+
+- titulo: required, string, max:100
+- descripcion: required, string, max:500
+- categoria: required, in:bache,alumbrado,basura,areas_verdes,otro
+- urgencia: required, integer, min:1, max:5
+- telefono_contacto: required, digits_between:7,10
+- foto: required, image, max:2048 (2MB)
+- lat: required, numeric, between:-90,90
+- lng: required, numeric, between:-180,180
+- estado: default 'pendiente'
+
+
+=============================================================
+ENDPOINTS DE LA API
+=============================================================
+
+POST   /api/register        → AuthController@register   (sin auth)
+POST   /api/login           → AuthController@login      (sin auth)
+POST   /api/logout          → AuthController@logout     (sanctum)
+GET    /api/user            → AuthController@user       (sanctum)
+GET    /api/reportes        → ReporteController@index   (sanctum)
+POST   /api/reportes        → ReporteController@store   (sanctum)
+GET    /api/reportes/{id}   → ReporteController@show    (sanctum)
+PATCH  /api/reportes/{id}/estado → ReporteController@updateEstado (sanctum)
