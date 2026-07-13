@@ -4,7 +4,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { getEstadisticas } from '../services/api';
 import { Ionicons } from '@expo/vector-icons';
 
-const ESTADO_COLOR = { pendiente: '#f97316', en_revision: '#3b82f6', en_proceso: '#8b5cf6', resuelto: '#22c55e', rechazado: '#ef4444' };
+const ESTADO_COLOR = { pendiente: '#ff6d00', en_revision: '#1565c0', en_proceso: '#f9a825', resuelto: '#00c853', rechazado: '#d50000' };
 
 export default function EstadisticasScreen() {
   const navigation = useNavigation();

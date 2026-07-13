@@ -23,4 +23,19 @@ class NotificacionController extends Controller
 
         return response()->json(['mensaje' => 'Notificación marcada como leída']);
     }
+
+    public function marcarTodasLeidas(): JsonResponse
+    {
+        auth()->user()->notificaciones()->where('leida', false)->update(['leida' => true]);
+
+        return response()->json(['mensaje' => 'Todas las notificaciones marcadas como leídas']);
+    }
+
+    public function destroy($id): JsonResponse
+    {
+        $notificacion = auth()->user()->notificaciones()->findOrFail($id);
+        $notificacion->delete();
+
+        return response()->json(['mensaje' => 'Notificación eliminada']);
+    }
 }

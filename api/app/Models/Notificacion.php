@@ -12,6 +12,8 @@ class Notificacion extends Model
     protected $fillable = [
         'usuario_id',
         'reporte_id',
+        'aviso_id',
+        'tipo',
         'mensaje',
         'leida',
     ];
@@ -31,5 +33,10 @@ class Notificacion extends Model
     public function reporte(): BelongsTo
     {
         return $this->belongsTo(Reporte::class, 'reporte_id');
+    }
+
+    public function aviso(): BelongsTo
+    {
+        return $this->belongsTo(Aviso::class, 'aviso_id');
     }
 }

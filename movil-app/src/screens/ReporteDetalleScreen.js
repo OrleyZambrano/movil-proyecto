@@ -7,8 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const ESTADO_COLOR = { pendiente: '#f97316', en_revision: '#3b82f6', en_proceso: '#8b5cf6', resuelto: '#22c55e', rechazado: '#ef4444' };
-const PRIORIDAD_COLOR = { 1: '#22c55e', 2: '#84cc16', 3: '#eab308', 4: '#f97316', 5: '#ef4444' };
+const ESTADO_COLOR = { pendiente: '#ff6d00', en_revision: '#1565c0', en_proceso: '#f9a825', resuelto: '#00c853', rechazado: '#d50000' };
+const PRIORIDAD_COLOR = { 1: '#00c853', 2: '#64dd17', 3: '#ffd600', 4: '#ff6d00', 5: '#d50000' };
 const PRIORIDAD_LABEL = { 1: 'Muy baja', 2: 'Baja', 3: 'Media', 4: 'Alta', 5: 'Crítica' };
 
 export default function ReporteDetalleScreen({ route, navigation }) {

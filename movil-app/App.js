@@ -19,6 +19,9 @@ import ReporteDetalleScreen from './src/screens/ReporteDetalleScreen';
 import EstadisticasScreen from './src/screens/EstadisticasScreen';
 import CategoriasAdminScreen from './src/screens/CategoriasAdminScreen';
 import UsuariosAdminScreen from './src/screens/UsuariosAdminScreen';
+import AvisosScreen from './src/screens/AvisosScreen';
+import NuevoAvisoScreen from './src/screens/NuevoAvisoScreen';
+import AvisoDetalleScreen from './src/screens/AvisoDetalleScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -26,8 +29,8 @@ const Stack = createNativeStackNavigator();
 const TAB_ICONS = {
   Inicio: 'home',
   Reportes: 'map',
+  Avisos: 'warning',
   Reportar: 'add-circle',
-  Notificaciones: 'notifications',
   Perfil: 'person',
   Admin: 'shield-checkmark',
 };
@@ -54,14 +57,14 @@ function TabNavigator({ token, user, updateToken, updateUser, unread, refrescarN
         tabBarActiveTintColor: '#3b82f6',
         tabBarInactiveTintColor: '#64748b',
         tabBarIcon: ({ color, size }) => <Ionicons name={TAB_ICONS[route.name]} size={size} color={color} />,
-        tabBarBadge: route.name === 'Notificaciones' && unread > 0 ? String(unread) : undefined,
+        tabBarBadge: undefined,
         tabBarBadgeStyle: { backgroundColor: '#ef4444', color: '#fff', fontSize: 10 },
       })}
     >
-      <Tab.Screen name="Inicio">{() => <HomeScreen token={token} user={user} setToken={updateToken} />}</Tab.Screen>
+      <Tab.Screen name="Inicio">{() => <HomeScreen token={token} user={user} setToken={updateToken} unread={unread} />}</Tab.Screen>
       <Tab.Screen name="Reportes">{() => <ReportesScreen token={token} user={user} />}</Tab.Screen>
+      <Tab.Screen name="Avisos">{() => <AvisosScreen token={token} user={user} />}</Tab.Screen>
       <Tab.Screen name="Reportar">{() => <NuevoReporteScreen token={token} setToken={updateToken} />}</Tab.Screen>
-      <Tab.Screen name="Notificaciones">{() => <NotificacionesScreen token={token} />}</Tab.Screen>
       <Tab.Screen name="Perfil">{() => <PerfilScreen token={token} user={user} setToken={updateToken} setUser={updateUser} />}</Tab.Screen>
       {esAdmin && (
         <Tab.Screen name="Admin">{() => <EstadisticasScreen token={token} user={user} />}</Tab.Screen>
@@ -136,6 +139,11 @@ export default function App() {
           <Stack.Screen name="ReporteDetalle" component={ReporteDetalleScreen} options={{ presentation: 'modal' }} />
           <Stack.Screen name="CategoriasAdmin" component={CategoriasAdminScreen} options={{ presentation: 'modal' }} />
           <Stack.Screen name="UsuariosAdmin" component={UsuariosAdminScreen} options={{ presentation: 'modal' }} />
+          <Stack.Screen name="NuevoAviso" component={NuevoAvisoScreen} options={{ presentation: 'modal' }} />
+          <Stack.Screen name="AvisoDetalle" component={AvisoDetalleScreen} options={{ presentation: 'modal' }} />
+          <Stack.Screen name="NotificacionesModal" options={{ presentation: 'modal' }}>
+            {() => <NotificacionesScreen token={token} />}
+          </Stack.Screen>
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaView>

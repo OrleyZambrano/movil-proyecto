@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AvisoController;
 use App\Http\Controllers\Api\CategoriaController;
 use App\Http\Controllers\Api\ComentarioController;
 use App\Http\Controllers\Api\EstadisticaController;
@@ -19,11 +20,17 @@ use Illuminate\Support\Facades\Route;
 Route::post('register', [AuthController::class, 'register']);
 Route::post('login', [AuthController::class, 'login']);
 
+Route::get('reportes/cercanos', [ReporteController::class, 'cercanos']);
 Route::get('reportes', [ReporteController::class, 'index']);
 Route::get('reportes/{reporte}', [ReporteController::class, 'show']);
 Route::get('reportes/{reporte}/comentarios', [ComentarioController::class, 'index']);
 
 Route::get('categorias', [CategoriaController::class, 'index']);
+
+// Avisos públicos
+Route::get('avisos/cercanos/todos', [AvisoController::class, 'cercanos']);
+Route::get('avisos', [AvisoController::class, 'index']);
+Route::get('avisos/{aviso}', [AvisoController::class, 'show']);
 
 // Autenticadas
 Route::middleware('auth:sanctum')->group(function () {
@@ -46,7 +53,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Notificaciones
     Route::get('notificaciones', [NotificacionController::class, 'index']);
+    Route::patch('notificaciones/leer-todas', [NotificacionController::class, 'marcarTodasLeidas']);
     Route::patch('notificaciones/{id}/leida', [NotificacionController::class, 'marcarLeida']);
+    Route::delete('notificaciones/{id}', [NotificacionController::class, 'destroy']);
 
     // Usuarios (admin)
     Route::get('usuarios', [UsuarioController::class, 'index']);
@@ -65,4 +74,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Reportes (admin)
     Route::delete('reportes/{reporte}', [ReporteController::class, 'destroy']);
+
+    // Avisos (funcionario, admin)
+    Route::post('avisos', [AvisoController::class, 'store']);
+    Route::put('avisos/{aviso}', [AvisoController::class, 'update']);
+    Route::delete('avisos/{aviso}', [AvisoController::class, 'destroy']);
 });

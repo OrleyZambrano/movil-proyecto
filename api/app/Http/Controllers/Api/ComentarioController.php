@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreComentarioRequest;
 use App\Http\Resources\ComentarioResource;
 use App\Models\Comentario;
+use App\Models\Notificacion;
 use App\Models\Reporte;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -26,6 +27,15 @@ class ComentarioController extends Controller
             'usuario_id' => auth()->id(),
             'comentario' => $request->comentario,
         ]);
+
+        if ($reporte->usuario_id !== auth()->id()) {
+            Notificacion::create([
+                'usuario_id' => $reporte->usuario_id,
+                'reporte_id' => $reporte->id,
+                'tipo' => 'reporte',
+                'mensaje' => "Nuevo comentario en tu reporte '{$reporte->titulo}'",
+            ]);
+        }
 
         return ComentarioResource::make($comentario->load('usuario'))
             ->response()

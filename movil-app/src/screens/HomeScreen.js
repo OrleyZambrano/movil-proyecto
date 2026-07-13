@@ -1,112 +1,209 @@
 import { useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, Alert, Animated, ScrollView, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
+} from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { getReportes } from '../services/api';
+import { getReportes, getAvisos } from '../services/api';
 import { Ionicons } from '@expo/vector-icons';
+import MapaReportes from '../components/MapaReportes';
 
-const ESTADOS = ['pendiente', 'en_revision', 'en_proceso', 'resuelto', 'rechazado'];
-const ESTADO_COLOR = { pendiente: '#f97316', en_revision: '#3b82f6', en_proceso: '#8b5cf6', resuelto: '#22c55e', rechazado: '#ef4444' };
-const PRIORIDAD_COLOR = { 1: '#22c55e', 2: '#84cc16', 3: '#eab308', 4: '#f97316', 5: '#ef4444' };
-const PRIORIDAD_LABEL = { 1: 'Muy baja', 2: 'Baja', 3: 'Media', 4: 'Alta', 5: 'Crítica' };
+const ESTADO_COLOR = {
+  pendiente: '#ff6d00',
+  en_revision: '#1565c0',
+  en_proceso: '#f9a825',
+  resuelto: '#00c853',
+  rechazado: '#d50000',
+};
 
-const ROL_LABEL = { ciudadano: 'Ciudadano', funcionario: 'Funcionario', admin: 'Administrador' };
+const FILTROS = [
+  { key: 'todas', label: 'Todas' },
+  { key: 'pendientes', label: 'Pendientes' },
+  { key: 'urgentes', label: 'Urgentes' },
+];
 
-export default function HomeScreen({ token, user, setToken }) {
+export default function HomeScreen({ token, user, setToken, unread }) {
   const navigation = useNavigation();
   const rootNav = navigation.getParent();
   const [reportes, setReportes] = useState([]);
+  const [avisos, setAvisos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [filtro, setFiltro] = useState('todas');
 
-  useFocusEffect(useCallback(() => { cargarDatos(); }, []));
-
-  const cargarDatos = async () => {
+  const cargarDatos = useCallback(async () => {
     try {
-      const r = await getReportes();
-      setReportes(r.data || []);
-    } catch { Alert.alert('Error', 'No se pudieron cargar los reportes'); }
-    finally { setLoading(false); setRefreshing(false); }
-  };
+      const params = {};
+      if (filtro === 'pendientes') params.estado = 'pendiente';
+      if (filtro === 'mis' && user?.id) params.funcionario_id = user.id;
+      const [r, a] = await Promise.all([
+        getReportes(Object.keys(params).length ? params : undefined),
+        getAvisos({ activo: '1' }),
+      ]);
+      let reportesData = (r && r.data) || [];
+      if (filtro === 'urgentes') {
+        reportesData = reportesData.filter((rep) => rep.prioridad >= 4);
+      }
+      setReportes(reportesData);
+      setAvisos((a && a.data) || []);
+    } catch {} finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [filtro, user?.id]);
+
+  useFocusEffect(useCallback(() => { cargarDatos(); }, [cargarDatos]));
 
   const onRefresh = () => { setRefreshing(true); cargarDatos(); };
 
-  const total = reportes.length;
-  const resueltos = reportes.filter((r) => r.estado === 'resuelto').length;
-  const pendientes = reportes.filter((r) => r.estado === 'pendiente').length;
-  const urgentes = reportes.filter((r) => r.prioridad >= 4).length;
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </View>
+    );
+  }
 
-  const statCards = [
-    { icon: 'document-text', color: '#3b82f6', num: total, label: 'Total' },
-    { icon: 'time', color: '#f97316', num: pendientes, label: 'Pendientes' },
-    { icon: 'checkmark-circle', color: '#22c55e', num: resueltos, label: 'Resueltos' },
-    { icon: 'alert-circle', color: '#ef4444', num: urgentes, label: 'Urgentes' },
-  ];
+  const renderItem = ({ item }) => {
+    const cat = item.categoria || {};
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.7}
+        onPress={() => rootNav.navigate('ReporteDetalle', { reporteId: item.id, token })}
+      >
+        <View style={[styles.catIcon, { backgroundColor: (cat.color || '#64748b') + '20' }]}>
+          <Ionicons name={cat.icono || 'ellipsis-horizontal'} size={20} color={cat.color || '#64748b'} />
+        </View>
+        <View style={styles.cardBody}>
+          <Text style={styles.cardTitle} numberOfLines={1}>{item.titulo}</Text>
+          <Text style={styles.cardDesc} numberOfLines={2}>{item.descripcion}</Text>
+          <View style={styles.cardMeta}>
+            <View style={[styles.estadoBadge, { backgroundColor: (ESTADO_COLOR[item.estado] || '#64748b') + '20' }]}>
+              <View style={[styles.estadoDot, { backgroundColor: ESTADO_COLOR[item.estado] || '#64748b' }]} />
+              <Text style={[styles.estadoText, { color: ESTADO_COLOR[item.estado] || '#64748b' }]}>
+                {item.estado?.replace(/_/g, ' ')}
+              </Text>
+            </View>
+            <Text style={styles.cardFecha}>{item.creado}</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color="#475569" />
+      </TouchableOpacity>
+    );
+  };
 
   const listHeader = (
-    <View>
-      <View style={styles.headerSection}>
-        <View style={styles.topRow}>
-          <View>
-            <Text style={styles.greeting}>{token && user ? `Hola, ${user.name?.split(' ')[0] || 'ciudadano'}` : 'Reporte Ciudadano'}</Text>
-            <Text style={styles.subtitle}>{user ? ROL_LABEL[user.rol] || 'Ciudadano' : 'Reportes comunitarios'}</Text>
-          </View>
-          <TouchableOpacity style={styles.authBtn} onPress={() => token ? navigation.navigate('Perfil') : rootNav.navigate('Login', { setToken })}>
-            <Ionicons name="person-outline" size={18} color="#fff" />
-            <Text style={styles.authBtnText}>{token ? 'Perfil' : 'Entrar'}</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.statsRow}>
-          {statCards.map((s, i) => (
-            <View key={i} style={styles.statCard}>
-              <Ionicons name={s.icon} size={20} color={s.color} />
-              <Text style={styles.statNum}>{s.num}</Text>
-              <Text style={styles.statLabel}>{s.label}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Reportes recientes</Text>
-      </View>
+    <View style={styles.listTitleRow}>
+      <Text style={styles.listTitle}>Reportes recientes</Text>
+      <Text style={styles.listCount}>{reportes.length} encontrados</Text>
     </View>
   );
 
-  if (loading) {
-    return <View style={[styles.container, styles.center]}><ActivityIndicator size="large" color="#3b82f6" /><Text style={styles.loadingText}>Cargando reportes...</Text></View>;
-  }
-
   return (
     <View style={styles.container}>
-      <FlatList data={reportes} renderItem={({ item }) => {
-        const cat = item.categoria || {};
-        return (
-          <TouchableOpacity style={styles.card} activeOpacity={0.7} onPress={() => rootNav.navigate('ReporteDetalle', { reporteId: item.id, token })}>
-            <View style={styles.cardBody}>
-              <View style={styles.cardTop}>
-                <Text style={styles.cardTitle} numberOfLines={1}>{item.titulo}</Text>
-                <View style={styles.prioWrap}>
-                  <View style={[styles.prioBadge, { backgroundColor: PRIORIDAD_COLOR[item.prioridad] }]}>
-                    <Text style={styles.prioText}>{item.prioridad}</Text>
-                  </View>
-                  <Text style={[styles.prioLabel, { color: PRIORIDAD_COLOR[item.prioridad] }]}>{PRIORIDAD_LABEL[item.prioridad] || item.prioridad}</Text>
-                </View>
-              </View>
-              <Text style={styles.cardDesc} numberOfLines={2}>{item.descripcion}</Text>
-              <View style={styles.cardBottom}>
-                <View style={styles.cardTags}>
-                  {cat.icono && <Ionicons name={cat.icono} size={12} color={cat.color} />}
-                  <Text style={[styles.cardCat, { color: cat.color || '#94a3b8' }]}>{cat.nombre || 'Sin categoría'}</Text>
-                  <View style={[styles.dot, { backgroundColor: ESTADO_COLOR[item.estado] || '#64748b' }]} />
-                  <Text style={[styles.cardEstado, { color: ESTADO_COLOR[item.estado] || '#64748b' }]}>{item.estado?.replace(/_/g, ' ')}</Text>
-                </View>
-                <Text style={styles.cardFecha}>{item.creado}</Text>
-              </View>
+      {/* ---- HEADER ---- */}
+      <View style={styles.header}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.greeting} numberOfLines={1}>
+            {token && user ? `Hola, ${user.name?.split(' ')[0] || 'ciudadano'}` : 'Reporte Ciudadano'}
+          </Text>
+          <Text style={styles.role}>
+            {token ? user?.rol === 'admin' ? 'Admin' : user?.rol === 'funcionario' ? 'Funcionario' : 'Ciudadano' : 'Mapa comunitario'}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.notifBtn}
+          onPress={() => rootNav.navigate('NotificacionesModal', { token })}
+        >
+          <Ionicons name="notifications-outline" size={22} color="#f1f5f9" />
+          {unread > 0 && (
+            <View style={styles.notifBadge}>
+              <Text style={styles.notifBadgeText}>{unread > 9 ? '9+' : unread}</Text>
             </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* ---- FILTROS ---- */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.filtrosScroll}
+        contentContainerStyle={styles.filtrosRow}
+      >
+        {FILTROS.map((f) => (
+          <TouchableOpacity
+            key={f.key}
+            style={[styles.filtroBtn, filtro === f.key && styles.filtroBtnActive]}
+            onPress={() => setFiltro(f.key)}
+          >
+            <Text style={[styles.filtroText, filtro === f.key && styles.filtroTextActive]}>{f.label}</Text>
           </TouchableOpacity>
-        );
-      }} keyExtractor={(item) => String(item.id)} ListHeaderComponent={listHeader} contentContainerStyle={styles.list} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" colors={['#3b82f6']} />}
-        ListEmptyComponent={<View style={styles.emptyBox}><Ionicons name="document-text-outline" size={64} color="#334155" /><Text style={styles.emptyTitle}>No hay reportes</Text><Text style={styles.emptySub}>Sé el primero en reportar algo</Text></View>}
+        ))}
+        {token && (
+          <TouchableOpacity
+            style={[styles.filtroBtn, filtro === 'mis' && styles.filtroBtnActive]}
+            onPress={() => setFiltro(filtro === 'mis' ? 'todas' : 'mis')}
+          >
+            <Text style={[styles.filtroText, filtro === 'mis' && styles.filtroTextActive]}>Mis reportes</Text>
+          </TouchableOpacity>
+        )}
+      </ScrollView>
+
+      {/* ---- MAPA (vista fija, NO dentro del FlatList) ---- */}
+      <View style={styles.mapWrapper}>
+        <MapaReportes
+          reportes={reportes}
+          avisos={avisos}
+          onPressReporte={(r) => rootNav.navigate('ReporteDetalle', { reporteId: r.id, token })}
+          onPressAviso={(a) => rootNav.navigate('AvisoDetalle', { avisoId: a.id, token })}
+        />
+        <View style={styles.leyenda}>
+          <View style={styles.leyItem}><View style={[styles.leyDot, { backgroundColor: '#d50000' }]} /><Text style={styles.leyText}>Urgente</Text></View>
+          <View style={styles.leyItem}><View style={[styles.leyDot, { backgroundColor: '#ff6d00' }]} /><Text style={styles.leyText}>Pendiente</Text></View>
+          <View style={styles.leyItem}><View style={[styles.leyDot, { backgroundColor: '#f9a825' }]} /><Text style={styles.leyText}>En proceso</Text></View>
+          <View style={styles.leyItem}><View style={[styles.leyDot, { backgroundColor: '#00c853' }]} /><Text style={styles.leyText}>Resuelto</Text></View>
+        </View>
+      </View>
+
+      {/* ---- LISTA DE REPORTES ---- */}
+      <FlatList
+        data={reportes}
+        renderItem={renderItem}
+        keyExtractor={(item) => String(item.id)}
+        ListHeaderComponent={listHeader}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyBox}>
+            <Ionicons name="document-text-outline" size={48} color="#334155" />
+            <Text style={styles.emptyTitle}>No hay reportes</Text>
+            <Text style={styles.emptySub}>Sé el primero en reportar</Text>
+          </View>
+        }
+        keyboardShouldPersistTaps="handled"
       />
+
+      {/* ---- FAB ---- */}
+      <TouchableOpacity
+        style={styles.fab}
+        activeOpacity={0.8}
+        onPress={() => {
+          if (!token) rootNav.navigate('Login', { setToken });
+          else rootNav.navigate('NuevoReporte', { token, setToken });
+        }}
+      >
+        <Ionicons name="add" size={28} color="#fff" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -114,36 +211,126 @@ export default function HomeScreen({ token, user, setToken }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f172a' },
   center: { justifyContent: 'center', alignItems: 'center' },
-  loadingText: { color: '#64748b', marginTop: 12, fontSize: 14 },
-  list: { paddingBottom: 20 },
-  headerSection: { padding: 20, paddingBottom: 12 },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-  greeting: { color: '#f1f5f9', fontSize: 24, fontWeight: '800' },
-  subtitle: { color: '#64748b', fontSize: 14, marginTop: 2 },
-  authBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1e293b', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, gap: 6 },
-  authBtnText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  statsRow: { flexDirection: 'row', gap: 8 },
-  statCard: { flex: 1, backgroundColor: '#1e293b', borderRadius: 14, padding: 12, alignItems: 'center' },
-  statNum: { color: '#f1f5f9', fontSize: 20, fontWeight: '800', marginTop: 6 },
-  statLabel: { color: '#64748b', fontSize: 11, marginTop: 2 },
-  sectionHeader: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
-  sectionTitle: { color: '#94a3b8', fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
-  card: { backgroundColor: '#1e293b', marginHorizontal: 16, marginBottom: 10, borderRadius: 16, overflow: 'hidden' },
-  cardBody: { padding: 14 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  cardTitle: { color: '#f1f5f9', fontSize: 15, fontWeight: '700', flex: 1, marginRight: 8 },
-  prioBadge: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  prioText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  prioWrap: { alignItems: 'flex-end', gap: 2 },
-  prioLabel: { fontSize: 10, fontWeight: '700' },
-  cardDesc: { color: '#94a3b8', fontSize: 13, lineHeight: 18, marginBottom: 10 },
-  cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardTags: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  cardCat: { fontSize: 11, fontWeight: '600' },
-  dot: { width: 5, height: 5, borderRadius: 3, marginLeft: 4 },
-  cardEstado: { fontSize: 11, fontWeight: '600' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  greeting: { color: '#f1f5f9', fontSize: 18, fontWeight: '800' },
+  role: { color: '#64748b', fontSize: 12, marginTop: 1 },
+  notifBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#1e293b',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#ef4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  notifBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
+  filtrosScroll: { flexGrow: 0, flexShrink: 0, marginTop: 6, marginBottom: 6 },
+  filtrosRow: { paddingHorizontal: 14, alignItems: 'center', gap: 8, height: 38 },
+  filtroBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: '#1e293b',
+    borderWidth: 1.5,
+    borderColor: '#475569',
+    height: 36,
+    justifyContent: 'center',
+  },
+  filtroBtnActive: { backgroundColor: '#2563eb', borderColor: '#3b82f6' },
+  filtroText: { color: '#94a3b8', fontSize: 12, fontWeight: '600' },
+  filtroTextActive: { color: '#fff' },
+  mapWrapper: {
+    height: 240,
+    marginHorizontal: 12,
+    marginTop: 8,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  leyenda: {
+    position: 'absolute',
+    bottom: 6,
+    left: 10,
+    flexDirection: 'row',
+    gap: 10,
+    backgroundColor: '#0f172add',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  leyItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  leyDot: { width: 6, height: 6, borderRadius: 3 },
+  leyText: { color: '#94a3b8', fontSize: 9 },
+  listTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 8,
+  },
+  listTitle: { color: '#f1f5f9', fontSize: 15, fontWeight: '700' },
+  listCount: { color: '#64748b', fontSize: 12 },
+  listContent: { paddingBottom: 80 },
+  card: {
+    flexDirection: 'row',
+    backgroundColor: '#1e293b',
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  catIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  cardBody: { flex: 1 },
+  cardTitle: { color: '#f1f5f9', fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  cardDesc: { color: '#64748b', fontSize: 12, lineHeight: 17, marginBottom: 6 },
+  cardMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  estadoBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, gap: 4 },
+  estadoDot: { width: 5, height: 5, borderRadius: 3 },
+  estadoText: { fontSize: 11, fontWeight: '600' },
   cardFecha: { color: '#475569', fontSize: 11 },
-  emptyBox: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
-  emptyTitle: { color: '#64748b', fontSize: 18, fontWeight: '700', marginTop: 16 },
-  emptySub: { color: '#475569', fontSize: 14, marginTop: 6 },
+  emptyBox: { alignItems: 'center', paddingVertical: 40 },
+  emptyTitle: { color: '#64748b', fontSize: 16, fontWeight: '700', marginTop: 12 },
+  emptySub: { color: '#475569', fontSize: 13, marginTop: 4 },
+  fab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    zIndex: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#3b82f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
 });

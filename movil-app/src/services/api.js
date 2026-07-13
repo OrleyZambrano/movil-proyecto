@@ -1,8 +1,8 @@
 import { Platform } from 'react-native';
 import { leerToken } from './storage';
 
-const API_URL = 'http://192.168.88.56:8000/api';
-const API_BASE = 'http://192.168.88.56:8000';
+const API_URL = 'http://192.168.100.38:8000/api';
+const API_BASE = 'http://192.168.100.38:8000';
 const API_TIMEOUT = 15000;
 
 // En web usamos el fetch nativo del navegador para que un Blob dentro de un
@@ -67,6 +67,8 @@ export const createComentario = (reporteId, comentario) =>
 
 export const getNotificaciones = () => request('/notificaciones');
 export const marcarNotificacionLeida = (id) => request(`/notificaciones/${id}/leida`, { method: 'PATCH' });
+export const marcarTodasLeidas = () => request('/notificaciones/leer-todas', { method: 'PATCH' });
+export const eliminarNotificacion = (id) => request(`/notificaciones/${id}`, { method: 'DELETE' });
 
 export const getEstadisticas = () => request('/estadisticas');
 
@@ -96,3 +98,21 @@ export const eliminarUsuario = (id) =>
 // Asignación de reporte a funcionario (admin)
 export const asignarReporte = (id, funcionarioId) =>
   request(`/reportes/${id}/asignar`, { method: 'POST', body: JSON.stringify({ funcionario_id: funcionarioId }) });
+
+// Reportes cercanos
+export const getReportesCercanos = (lat, lng, radio = 5) =>
+  request(`/reportes/cercanos?lat=${lat}&lng=${lng}&radio=${radio}`);
+
+// Avisos
+export const getAvisos = (params) => {
+  const q = params ? '?' + new URLSearchParams(params).toString() : '';
+  return request(`/avisos${q}`);
+};
+export const getAviso = (id) => request(`/avisos/${id}`);
+export const createAviso = (payload) =>
+  request('/avisos', { method: 'POST', body: JSON.stringify(payload) });
+export const updateAviso = (id, payload) =>
+  request(`/avisos/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+export const deleteAviso = (id) => request(`/avisos/${id}`, { method: 'DELETE' });
+export const getAvisosCercanos = (lat, lng, radio = 5) =>
+  request(`/avisos/cercanos/todos?lat=${lat}&lng=${lng}&radio=${radio}`);

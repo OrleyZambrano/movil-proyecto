@@ -8,7 +8,10 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.william20.movilapp"
+      "bundleIdentifier": "com.william20.movilapp",
+      "config": {
+        "googleMapsApiKey": "AIzaSyCMwxf5hcLPKTqCBhfOKlW24nBdPsp_m_c"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +20,12 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.william20.movilapp"
+      "package": "com.william20.movilapp",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCMwxf5hcLPKTqCBhfOKlW24nBdPsp_m_c"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"

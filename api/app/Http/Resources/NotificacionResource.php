@@ -13,7 +13,9 @@ class NotificacionResource extends JsonResource
             'id'       => $this->id,
             'mensaje'  => $this->mensaje,
             'leida'    => $this->leida,
+            'tipo'     => $this->tipo ?? 'reporte',
             'reporte_id' => $this->reporte_id,
+            'aviso_id' => $this->aviso_id,
             'creado'   => $this->created_at->diffForHumans(),
         ];
     }

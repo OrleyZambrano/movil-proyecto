@@ -77,6 +77,24 @@ class ReporteController extends Controller
             'comentario' => 'Reporte creado',
         ]);
 
+        $funcionarios = User::whereIn('rol', ['funcionario', 'admin'])
+            ->where('id', '!=', auth()->id())
+            ->pluck('id');
+
+        $notifs = $funcionarios->map(fn($uid) => [
+            'usuario_id' => $uid,
+            'reporte_id' => $reporte->id,
+            'tipo' => 'reporte',
+            'mensaje' => "Nuevo reporte: '{$reporte->titulo}'",
+            'leida' => false,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ])->toArray();
+
+        if (!empty($notifs)) {
+            Notificacion::insert($notifs);
+        }
+
         return ReporteResource::make($reporte->load(['usuario', 'categoria']))
             ->response()
             ->setStatusCode(201);
@@ -164,7 +182,7 @@ class ReporteController extends Controller
         Notificacion::create([
             'usuario_id' => $reporte->usuario_id,
             'reporte_id' => $reporte->id,
-            // str_replace para mostrar "en proceso" en lugar de "en_proceso".
+            'tipo' => 'reporte',
             'mensaje'    => "Tu reporte '{$reporte->titulo}' cambió a estado: " . str_replace('_', ' ', $request->estado),
         ]);
 
@@ -198,6 +216,7 @@ class ReporteController extends Controller
         Notificacion::create([
             'usuario_id' => $funcionario->id,
             'reporte_id' => $reporte->id,
+            'tipo' => 'reporte',
             'mensaje'    => "Se te asignó el reporte '{$reporte->titulo}'",
         ]);
 
@@ -250,6 +269,33 @@ class ReporteController extends Controller
             }
         }
         return $rutas;
+    }
+
+    public function cercanos(Request $request): AnonymousResourceCollection
+    {
+        $request->validate([
+            'lat' => ['required', 'numeric'],
+            'lng' => ['required', 'numeric'],
+            'radio' => ['sometimes', 'numeric', 'min:1', 'max:50'],
+        ]);
+
+        $lat = $request->lat;
+        $lng = $request->lng;
+        $radio = $request->radio ?? 5;
+
+        return ReporteResource::collection(
+            Reporte::with(['usuario', 'categoria', 'funcionario'])
+                ->selectRaw("*, (
+                    6371 * acos(
+                        cos(radians(?)) * cos(radians(latitud)) *
+                        cos(radians(longitud) - radians(?)) +
+                        sin(radians(?)) * sin(radians(latitud))
+                    )
+                ) AS distancia", [$lat, $lng, $lat])
+                ->having('distancia', '<=', $radio)
+                ->orderBy('distancia')
+                ->paginate(50)
+        );
     }
 
     public function misReportes(Request $request): AnonymousResourceCollection
