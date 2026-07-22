@@ -1,8 +1,8 @@
 import { Platform } from 'react-native';
 import { leerToken } from './storage';
 
-const API_URL = 'http://192.168.100.38:8000/api';
-const API_BASE = 'http://192.168.100.38:8000';
+const API_URL = 'http://10.136.23.84:8000/api';
+const API_BASE = 'http://10.136.23.84:8000';
 const API_TIMEOUT = 15000;
 
 // En web usamos el fetch nativo del navegador para que un Blob dentro de un
@@ -33,8 +33,10 @@ async function request(endpoint, options = {}) {
     return data;
   } catch (e) {
     clearTimeout(timeout);
+    const msg = e?.message || '';
     if (e.name === 'AbortError') throw new Error('La solicitud tardó demasiado. Verifica tu conexión.');
-    if (e.message === 'Network request failed') throw new Error('Sin conexión al servidor');
+    if (msg.includes('Network request failed') || msg.includes('No route to host') || msg.includes('Host unreachable') || msg.includes('Unable to connect') || msg.includes('fetch failed') || msg.includes('ECONNREFUSED') || msg.includes('ENETUNREACH') || msg.includes('ERR_CONNECTION'))
+      throw new Error('No se puede conectar con el servidor. Verifica tu conexión a internet.');
     throw e;
   }
 }

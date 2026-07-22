@@ -142,10 +142,16 @@ export default function NuevoReporteScreen({ route, token: propToken, setToken: 
   const searchTimer = useRef(null);
   const [mostrarMapa, setMostrarMapa] = useState(false);
   const pickMapKey = useRef(0);
+  const [errorCategorias, setErrorCategorias] = useState('');
 
   useEffect(() => {
     if (!token) { navigation.getParent()?.navigate('Login', { setToken }); return; }
-    getCategorias().then((r) => setCategorias(r.data || [])).catch(() => {});
+    setErrorCategorias('');
+    getCategorias()
+      .then((r) => setCategorias(r.data || []))
+      .catch(() => {
+        setErrorCategorias('No se pudieron cargar las categorías. Verifica tu conexión.');
+      });
   }, []);
 
   useFocusEffect(useCallback(() => {
@@ -294,7 +300,13 @@ export default function NuevoReporteScreen({ route, token: propToken, setToken: 
       Alert.alert('¡Listo!', editando ? 'Reporte actualizado correctamente' : 'Reporte creado correctamente');
       navigation.goBack();
     } catch (e) {
-      Alert.alert('Error', e.message || (editando ? 'No se pudo actualizar el reporte' : 'No se pudo crear el reporte'));
+      const causa = e?.message || '';
+      const msj = causa.includes('Sin conexión') || causa.includes('servidor')
+        ? causa
+        : causa.includes('SQLSTATE') || causa.includes('categoria')
+          ? 'Error al guardar. Revisa que todos los campos estén correctos.'
+          : causa || (editando ? 'No se pudo actualizar el reporte' : 'No se pudo crear el reporte');
+      Alert.alert('Error', msj);
     } finally { setLoading(false); }
   };
 
@@ -314,6 +326,9 @@ export default function NuevoReporteScreen({ route, token: propToken, setToken: 
           <TextInput style={[styles.input, styles.textArea]} placeholder="Describe el problema..." placeholderTextColor="#475569" value={descripcion} onChangeText={setDescripcion} multiline />
 
           <Text style={styles.label}>Categoría</Text>
+          {errorCategorias ? (
+            <Text style={styles.errorText}>{errorCategorias}</Text>
+          ) : (
           <View style={styles.catRow}>
             {categorias.map((c) => (
               <TouchableOpacity key={c.id} style={[styles.catChip, String(c.id) === categoriaId && { backgroundColor: c.color + '30', borderColor: c.color }]}
@@ -323,6 +338,7 @@ export default function NuevoReporteScreen({ route, token: propToken, setToken: 
               </TouchableOpacity>
             ))}
           </View>
+          )}
 
           <Text style={styles.label}>Prioridad</Text>
           <View style={styles.prioRow}>
@@ -467,6 +483,7 @@ const styles = StyleSheet.create({
   thumbAdd: { width: 96, height: 96, borderRadius: 14, backgroundColor: '#1e293b', borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#3b82f6', alignItems: 'center', justifyContent: 'center', gap: 2 },
   thumbAddText: { color: '#3b82f6', fontSize: 11, fontWeight: '700' },
   galleryHint: { color: '#64748b', fontSize: 12, marginBottom: 12 },
+  errorText: { color: '#ef4444', fontSize: 13, fontWeight: '600', marginBottom: 12, textAlign: 'center' },
   submit: { flexDirection: 'row', backgroundColor: '#3b82f6', padding: 16, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 8, gap: 6 },
   submitText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });
