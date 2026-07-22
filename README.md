@@ -97,14 +97,14 @@ npm install
 
 ### Cambiar IP del servidor
 
-Editar `movil-app/src/services/api.js`:
+Editar `movil-app/src/config.js`:
 
 ```js
-const API_URL = 'http://TU_IP:8000/api';
-const API_BASE = 'http://TU_IP:8000';
+const API_HOST = '10.136.23.84';  // ← cambia esto
+const API_PORT = '8000';
 ```
 
-Obtén tu IP con `ipconfig` (Windows) o `ifconfig` (Linux/Mac) y úsala en lugar de `TU_IP`.
+Obtén tu IP con `ipconfig` (Windows) o `ifconfig` (Linux/Mac) y úsala en lugar del valor actual.
 
 ### Iniciar
 

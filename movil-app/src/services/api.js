@@ -1,8 +1,7 @@
 import { Platform } from 'react-native';
 import { leerToken } from './storage';
+import { API_URL, API_BASE } from '../config';
 
-const API_URL = 'http://10.136.23.84:8000/api';
-const API_BASE = 'http://10.136.23.84:8000';
 const API_TIMEOUT = 15000;
 
 // En web usamos el fetch nativo del navegador para que un Blob dentro de un
